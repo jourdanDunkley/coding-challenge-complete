@@ -32,16 +32,7 @@ The `after` hooks can be used to:
 - Update accounting
 - Emit events
 - Trigger follow-up processes after state changes are finalized
-
-### Data Flow Between Hooks
-
-Data can be passed from a `before` hook to an `after` hook. This allows:
-
-- The `after` hook to know the reward or liability state prior to the borrow operation
-- Logic like:
-  - Comparing the liability **before** and **after**
-  - Detecting whether the user has **completely closed out their position** and removing the asset from their borrowed list
-  - Taking actions such as **emitting an event**
+- Detecting whether the user has **completely closed out their position** and removing the asset from their borrowed list
 
 ---
 
