@@ -4,6 +4,7 @@ pragma solidity ^0.8.28;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./IMarketHooks.sol";
 import "./IDonatable.sol";
@@ -14,7 +15,13 @@ import "./IRewardable.sol";
  * @notice Tracks and distributes rewards to borrowers based on their share of total liabilities.
  * @dev Implements IMarketHooks, IRewardable, and IDonatable interfaces.
  */
-contract RewardsHook is IMarketHooks, IRewardable, IDonatable, ReentrancyGuard {
+contract RewardsHook is
+    IMarketHooks,
+    IRewardable,
+    IDonatable,
+    ReentrancyGuard,
+    Ownable
+{
     using SafeERC20 for IERC20;
 
     struct RewardInfo {
@@ -34,6 +41,15 @@ contract RewardsHook is IMarketHooks, IRewardable, IDonatable, ReentrancyGuard {
     mapping(address => bool) public isRewardToken;
     address[] public rewardTokens;
     address public market;
+
+    /**
+     * @notice Constructor to set the address of the Market contract.
+     * @param _market The address of the Market that will call the borrow and repay hooks.
+     */
+    constructor(address _market) Ownable(msg.sender) {
+        require(_market != address(0), "Invalid market address");
+        market = _market;
+    }
 
     /**
      * @notice Internal function to update global and user-specific reward state.
@@ -77,7 +93,7 @@ contract RewardsHook is IMarketHooks, IRewardable, IDonatable, ReentrancyGuard {
         address token,
         uint256 amount,
         uint40 window
-    ) external override {
+    ) external override onlyOwner {
         require(amount > 0 && window > 0, "Invalid input");
         RewardInfo storage r = rewardData[token];
         require(block.timestamp >= r.end, "Previous distribution still active");
@@ -296,6 +312,16 @@ contract RewardsHook is IMarketHooks, IRewardable, IDonatable, ReentrancyGuard {
      */
     function _min(uint256 a, uint256 b) internal pure returns (uint256) {
         return a < b ? a : b;
+    }
+
+    /**
+     * @notice Updates the address of the market contract.
+     * @dev Only callable by the contract owner.
+     * @param _newMarket The new market contract address.
+     */
+    function setMarket(address _newMarket) external onlyOwner {
+        require(_newMarket != address(0), "Invalid market address");
+        market = _newMarket;
     }
 }
 
